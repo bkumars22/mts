@@ -144,7 +144,7 @@ export default function Dashboard() {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <button type="button" onClick={reset} className={BACK_BUTTON}>
-                  <span aria-hidden="true">&larr;</span> Analyze another file
+                  <span aria-hidden="true">&larr;</span> Back to Dashboard
                 </button>
                 <p className="font-mono text-sm text-mts-muted">{state.filename}</p>
               </div>
