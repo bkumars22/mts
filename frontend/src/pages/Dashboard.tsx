@@ -47,6 +47,9 @@ function initialState(): ViewState {
 const ACTION_BUTTON =
   "rounded-lg border border-mts-accent px-3 py-1.5 text-xs font-semibold text-mts-accent transition-colors hover:bg-mts-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent focus-visible:ring-offset-2 focus-visible:ring-offset-mts-bg"
 
+const BACK_BUTTON =
+  "inline-flex items-center gap-1.5 rounded-lg border border-mts-border px-3 py-1.5 text-xs font-semibold text-mts-muted transition-colors hover:border-mts-border-hover hover:text-mts-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent focus-visible:ring-offset-2 focus-visible:ring-offset-mts-bg"
+
 export default function Dashboard() {
   const [state, setState] = useState<ViewState>(initialState)
 
@@ -139,7 +142,12 @@ export default function Dashboard() {
         {state.kind === "results" && (
           <div>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="font-mono text-sm text-mts-muted">{state.filename}</p>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={reset} className={BACK_BUTTON}>
+                  <span aria-hidden="true">&larr;</span> Analyze another file
+                </button>
+                <p className="font-mono text-sm text-mts-muted">{state.filename}</p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -154,9 +162,6 @@ export default function Dashboard() {
                   className={ACTION_BUTTON}
                 >
                   Download PDF Report
-                </button>
-                <button type="button" onClick={reset} className={ACTION_BUTTON}>
-                  Analyze another file
                 </button>
               </div>
             </div>

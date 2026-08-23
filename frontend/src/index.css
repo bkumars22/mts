@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  /* Light, clean ground */
-  --color-mts-bg: #f8faf9;
+  /* Matches chaitrishodaya.com's own palette (measured from the live site) */
+  --color-mts-bg: #faf7f1;
   --color-mts-surface: #ffffff;
   --color-mts-surface-raised: #ffffff;
-  --color-mts-border: #e2e8e4;
-  --color-mts-border-hover: #bfd4c5;
+  --color-mts-border: #e7dfcc;
+  --color-mts-border-hover: #d4c7a5;
 
-  /* Green - the app's one accent, used for buttons, upload highlight, focus */
-  --color-mts-accent: #16a34a;
-  --color-mts-accent-hover: #15803d;
-  --color-mts-accent-dim: #dcfce7;
+  /* Gold - chaitrishodaya's accent, used for buttons, upload highlight, focus */
+  --color-mts-accent: #a9790f;
+  --color-mts-accent-hover: #8a630c;
+  --color-mts-accent-dim: #f5ead2;
 
   /* Text hierarchy - one place to adjust for the whole app */
-  --color-mts-text: #0f172a;
-  --color-mts-muted: #52606d;
-  --color-mts-faint: #8a97a0;
+  --color-mts-text: #1e2a3b;
+  --color-mts-muted: #5b6472;
+  --color-mts-faint: #97a0ac;
 
-  /* Trust levels - the product's core visual signal */
+  /* Trust levels - the product's own semantic signal, independent of the brand accent */
   --color-mts-high: #15803d;
   --color-mts-high-bg: #dcfce7;
   --color-mts-medium: #b45309;
