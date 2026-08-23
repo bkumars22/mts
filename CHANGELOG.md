@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+- `frontend/`: React + Vite + TypeScript + Tailwind client-side analyzer. Ports all three checks to TypeScript so a CSV/JSON file is analyzed entirely in the browser - no backend, works offline once loaded.
+- Parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) that runs the TypeScript engine against the same canonical fixtures in `tests/fixtures/` and asserts the exact numbers already verified against the Python CLI, so the two implementations can't silently drift apart.
+- "Try an example" picker bundling the four fixtures for a zero-setup demo; drag-and-drop and keyboard-accessible file upload.
+- CI: added a `frontend` job (tsc, oxlint, vitest, build) to `.github/workflows/ci.yml`; added `.github/workflows/pages.yml` to deploy `frontend/dist` to GitHub Pages.
+
 ## [0.1.0] - 2026-08-23
 
 ### Added

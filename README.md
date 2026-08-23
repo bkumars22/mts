@@ -6,6 +6,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+**[Try it in your browser](https://mts.chaitrishodaya.com)** — the same three checks, ported to TypeScript, running entirely client-side. No file ever leaves your device.
+
 ---
 
 ## The Problem
@@ -71,6 +73,17 @@ mts analyze --input metrics.csv --verbose                # debug logging
 
 **Combination logic**: all three checks clean → **HIGH**. One flagged → **MEDIUM** (with the specific reason). Two or more flagged → **LOW** (with all reasons). A check that can't run (no `sample_size` column, or fewer than 10 historical points for the outlier check) is skipped with a clear note — it never silently counts against the score.
 
+## Web (client-side)
+
+`frontend/` ports the same three checks to TypeScript so the browser can analyze an uploaded CSV/JSON directly — no backend, works fully offline once loaded. A parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) runs both engines against the same canonical fixtures in `tests/fixtures/` to keep them in sync.
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+npm run build       # static output in frontend/dist, deployable to GitHub Pages
+```
+
 ## Development
 
 ```bash
@@ -80,4 +93,6 @@ pre-commit install
 ruff check . && ruff format --check .
 mypy mts/
 pytest --cov=mts --cov-report=term-missing
+
+cd frontend && npm ci && npx tsc -b && npx oxlint src && npx vitest run
 ```

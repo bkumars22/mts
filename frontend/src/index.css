@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  /* Portfolio-consistent neutral dark scale (matches AIMO's bg/surface/border) */
+  --color-mts-bg: #030712;
+  --color-mts-surface: #111827;
+  --color-mts-border: #1f2937;
+  --color-mts-border-hover: #374151;
+
+  /* MTS's own accent - sky, distinct from AIMO's indigo */
+  --color-mts-accent: #0ea5e9;
+  --color-mts-accent-dim: #0369a1;
+
+  /* Trust levels - the product's core visual signal */
+  --color-mts-high: #22c55e;
+  --color-mts-high-bg: #052e16;
+  --color-mts-medium: #f59e0b;
+  --color-mts-medium-bg: #451a03;
+  --color-mts-low: #ef4444;
+  --color-mts-low-bg: #450a0a;
+
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--color-mts-bg);
+  color: #e5e7eb;
+}
