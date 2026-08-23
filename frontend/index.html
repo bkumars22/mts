@@ -9,6 +9,23 @@
       content="MTS audits AI metric and evaluation data for statistical trustworthiness - completeness, sample size adequacy, and outlier influence, entirely in your browser."
     />
     <title>MTS - Metric Trust Score</title>
+    <!-- GitHub Pages SPA deep-link redirect receiver - decodes the path
+         404.html encoded into the query string back into a clean URL, so
+         refreshing or deep-linking to e.g. /mts/help works on static hosting. -->
+    <script>
+      (function (l) {
+        if (l.search[1] === "/") {
+          var decoded = l.search
+            .slice(1)
+            .split("&")
+            .map(function (s) {
+              return s.replace(/~and~/g, "&")
+            })
+            .join("?")
+          window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash)
+        }
+      })(window.location)
+    </script>
   </head>
   <body>
     <div id="root"></div>

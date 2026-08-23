@@ -1,28 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  /* Portfolio-consistent neutral dark scale (matches AIMO's bg/surface/border) */
-  --color-mts-bg: #030712;
-  --color-mts-surface: #111827;
-  --color-mts-border: #1f2937;
-  --color-mts-border-hover: #374151;
+  /* A dark blue-slate rather than near-black - has a deliberate hue bias
+     toward the sky accent below, so it reads as chosen, not default. */
+  --color-mts-bg: #0a0f1d;
+  --color-mts-surface: #131b2e;
+  --color-mts-surface-raised: #1a2438;
+  --color-mts-border: #232e47;
+  --color-mts-border-hover: #364261;
 
   /* MTS's own accent - sky, distinct from AIMO's indigo */
-  --color-mts-accent: #0ea5e9;
+  --color-mts-accent: #38bdf8;
   --color-mts-accent-dim: #0369a1;
 
   /* Trust levels - the product's core visual signal */
-  --color-mts-high: #22c55e;
-  --color-mts-high-bg: #052e16;
-  --color-mts-medium: #f59e0b;
-  --color-mts-medium-bg: #451a03;
-  --color-mts-low: #ef4444;
-  --color-mts-low-bg: #450a0a;
+  --color-mts-high: #34d399;
+  --color-mts-high-bg: #0b2e22;
+  --color-mts-medium: #fbbf24;
+  --color-mts-medium-bg: #3a2408;
+  --color-mts-low: #f87171;
+  --color-mts-low-bg: #3a1212;
 
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 }
 
 body {
   background-color: var(--color-mts-bg);
-  color: #e5e7eb;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -10%, color-mix(in srgb, var(--color-mts-accent) 12%, transparent), transparent),
+    radial-gradient(ellipse 800px 400px at 100% 0%, color-mix(in srgb, var(--color-mts-accent) 6%, transparent), transparent);
+  background-attachment: fixed;
+  color: #e7ebf3;
 }

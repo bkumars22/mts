@@ -6,7 +6,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**[Try it in your browser](https://mts.chaitrishodaya.com)** — the same three checks, ported to TypeScript, running entirely client-side. No file ever leaves your device.
+**[Try it in your browser](https://bkumars22.github.io/mts/)** — the same three checks, ported to TypeScript, running entirely client-side. No file ever leaves your device. (Will move to `mts.chaitrishodaya.com` once that DNS record is live.)
 
 ---
 
@@ -75,7 +75,7 @@ mts analyze --input metrics.csv --verbose                # debug logging
 
 ## Web (client-side)
 
-`frontend/` ports the same three checks to TypeScript so the browser can analyze an uploaded CSV/JSON directly — no backend, works fully offline once loaded. A parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) runs both engines against the same canonical fixtures in `tests/fixtures/` to keep them in sync.
+`frontend/` ports the same three checks to TypeScript so the browser can analyze an uploaded CSV, JSON, **or Excel** file directly — no backend, works fully offline once loaded. A parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) runs both engines against the same canonical fixtures in `tests/fixtures/` to keep them in sync. It also offers downloadable input templates, CSV/PDF report export, and a `/help` page — see `frontend/README.md` for detail.
 
 ```bash
 cd frontend

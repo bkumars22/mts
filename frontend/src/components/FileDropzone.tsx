@@ -35,7 +35,7 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
     <div
       role="button"
       tabIndex={0}
-      aria-label="Upload a CSV or JSON metrics file. Drag and drop, or press Enter to browse."
+      aria-label="Upload a CSV, JSON, or Excel metrics file. Drag and drop, or press Enter to browse."
       onClick={openFilePicker}
       onKeyDown={handleKeyDown}
       onDragOver={(e) => {
@@ -55,7 +55,7 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,.json"
+        accept=".csv,.json,.xlsx,.xls"
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0]
@@ -79,7 +79,7 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
       </svg>
       <div>
         <p className="text-sm font-medium text-gray-200">
-          Drag and drop your CSV or JSON file here
+          Drag and drop your CSV, JSON, or Excel file here
         </p>
         <p className="mt-1 text-xs text-gray-500">or click to browse - nothing leaves your browser</p>
       </div>

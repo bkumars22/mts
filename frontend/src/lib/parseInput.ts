@@ -1,9 +1,10 @@
 /**
- * Parse a CSV or JSON metric-records file into MetricRecord[] - mirrors
- * mts/load_data.py's validation (same required columns, same style of
- * error message) so the CLI and the web tool behave identically.
+ * Parse a CSV, JSON, or Excel metric-records file into MetricRecord[] -
+ * mirrors mts/load_data.py's validation (same required columns, same style
+ * of error message) so the CLI and the web tool behave identically.
  */
 import Papa from "papaparse"
+import * as XLSX from "xlsx"
 import type { MetricRecord } from "./checks/types"
 
 const REQUIRED_COLUMNS = ["timestamp", "metric_name", "value"] as const
@@ -12,18 +13,32 @@ export class MTSDataError extends Error {}
 
 type RawRow = Record<string, string | number | undefined>
 
-export function parseInput(filename: string, text: string): MetricRecord[] {
-  const lower = filename.toLowerCase()
-  let rows: RawRow[]
+export type InputKind = "csv" | "json" | "excel"
 
-  if (lower.endsWith(".csv")) {
-    rows = parseCsv(text)
-  } else if (lower.endsWith(".json")) {
-    rows = parseJson(text)
+export function detectInputKind(filename: string): InputKind {
+  const lower = filename.toLowerCase()
+  if (lower.endsWith(".csv")) return "csv"
+  if (lower.endsWith(".json")) return "json"
+  if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) return "excel"
+  throw new MTSDataError(
+    `Unsupported input file type - expected .csv, .json, .xlsx, or .xls (got '${filename}')`,
+  )
+}
+
+/**
+ * @param data Text content for CSV/JSON, or an ArrayBuffer for Excel files
+ *   (Excel files are binary, so they can't be read as text).
+ */
+export function parseInput(filename: string, data: string | ArrayBuffer): MetricRecord[] {
+  const kind = detectInputKind(filename)
+
+  let rows: RawRow[]
+  if (kind === "csv") {
+    rows = parseCsv(asText(data, filename))
+  } else if (kind === "json") {
+    rows = parseJson(asText(data, filename))
   } else {
-    throw new MTSDataError(
-      `Unsupported input file type - expected .csv or .json (got '${filename}')`,
-    )
+    rows = parseExcel(asBuffer(data, filename))
   }
 
   if (rows.length === 0) {
@@ -59,6 +74,20 @@ export function parseInput(filename: string, text: string): MetricRecord[] {
   })
 }
 
+function asText(data: string | ArrayBuffer, filename: string): string {
+  if (typeof data !== "string") {
+    throw new MTSDataError(`Expected text content for '${filename}'`)
+  }
+  return data
+}
+
+function asBuffer(data: string | ArrayBuffer, filename: string): ArrayBuffer {
+  if (typeof data === "string") {
+    throw new MTSDataError(`Expected binary content for '${filename}'`)
+  }
+  return data
+}
+
 function parseCsv(text: string): RawRow[] {
   const result = Papa.parse<RawRow>(text, {
     header: true,
@@ -82,4 +111,18 @@ function parseJson(text: string): RawRow[] {
     throw new MTSDataError("JSON input must be an array of metric records")
   }
   return parsed as RawRow[]
+}
+
+function parseExcel(buffer: ArrayBuffer): RawRow[] {
+  let workbook: XLSX.WorkBook
+  try {
+    workbook = XLSX.read(buffer, { type: "array", cellDates: false })
+  } catch (err) {
+    throw new MTSDataError(`Failed to parse Excel file: ${(err as Error).message}`)
+  }
+  const sheetName = workbook.SheetNames[0]
+  if (!sheetName) {
+    throw new MTSDataError("Excel file has no sheets")
+  }
+  return XLSX.utils.sheet_to_json<RawRow>(workbook.Sheets[sheetName], { defval: undefined })
 }

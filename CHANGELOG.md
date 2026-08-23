@@ -9,6 +9,16 @@ All notable changes to this project are documented here.
 - Parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) that runs the TypeScript engine against the same canonical fixtures in `tests/fixtures/` and asserts the exact numbers already verified against the Python CLI, so the two implementations can't silently drift apart.
 - "Try an example" picker bundling the four fixtures for a zero-setup demo; drag-and-drop and keyboard-accessible file upload.
 - CI: added a `frontend` job (tsc, oxlint, vitest, build) to `.github/workflows/ci.yml`; added `.github/workflows/pages.yml` to deploy `frontend/dist` to GitHub Pages.
+- Excel (`.xlsx`/`.xls`) as a third supported input format, alongside CSV/JSON, using SheetJS's officially patched CDN build (the npm-published `xlsx` package has unpatched prototype-pollution/ReDoS advisories - installed `xlsx` from `cdn.sheetjs.com` instead).
+- Downloadable input templates (CSV/JSON/Excel), generated from one source of truth (`frontend/scripts/generate-templates.mjs`) and committed as static assets.
+- Report export once analysis completes: `Download CSV` and `Download PDF Report` (client-side, `jspdf` - no backend involved).
+- A `/help` page explaining the three checks, supported formats, and how to read a trust score; client-side routing (`react-router-dom`) with a GitHub-Pages-compatible deep-link redirect (`404.html` + a receiver script in `index.html`, matching AIMO's pattern).
+- The last successful analysis now persists to `localStorage`, so refreshing the page restores the results instead of resetting to the upload screen.
+
+### Changed
+- Removed the GitHub link from the dashboard header; replaced with a `Help` link.
+- Softened the dark theme: moved off a near-black background to a blue-slate palette with a subtle accent-tinted gradient, and gave cards a shadow for more depth.
+- `vite.config.ts` `base` set to `/mts/` (GitHub Pages currently serves this at `bkumars22.github.io/mts/`; the `mts.chaitrishodaya.com` DNS record isn't live yet - change back to `/` once it is).
 
 ## [0.1.0] - 2026-08-23
 
