@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- `mts.chaitrishodaya.com` DNS is now live - switched `vite.config.ts` `base` from `/mts/` back to `/` and `404.html`'s `pathSegmentsToKeep` from `1` to `0` to match serving from the domain root instead of the `bkumars22.github.io/mts/` subpath. Repointed the README's demo link accordingly. Note: this means the plain `bkumars22.github.io/mts/` URL's assets will 404 again - a single build can only be correct for one of the two.
+
 ### Added
 - `frontend/`: React + Vite + TypeScript + Tailwind client-side analyzer. Ports all three checks to TypeScript so a CSV/JSON file is analyzed entirely in the browser - no backend, works offline once loaded.
 - Parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) that runs the TypeScript engine against the same canonical fixtures in `tests/fixtures/` and asserts the exact numbers already verified against the Python CLI, so the two implementations can't silently drift apart.

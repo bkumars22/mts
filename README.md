@@ -6,7 +6,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**[Try it in your browser](https://bkumars22.github.io/mts/)** — the same three checks, ported to TypeScript, running entirely client-side. No file ever leaves your device. (Will move to `mts.chaitrishodaya.com` once that DNS record is live.)
+**[Try it in your browser](https://mts.chaitrishodaya.com)** — the same three checks, ported to TypeScript, running entirely client-side. No file ever leaves your device.
 
 ---
 
