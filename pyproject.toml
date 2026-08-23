@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mts"
+version = "0.1.0"
+description = "Metric Trust Score — audits AI metric/evaluation data for statistical trustworthiness, not just correctness of the number itself."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Kumaraswamy B", email = "swamy.kumar02@gmail.com" }]
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24,<2.5",  # numpy 2.5's stub files need a newer mypy than is currently released
+    "rich>=13",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+]
+
+[project.scripts]
+mts = "mts.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["mts*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer's documented pattern requires calling typer.Option()/typer.Argument()
+# in argument defaults - not the mutable-default-arg pitfall B008 guards against.
+"mts/cli.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["mts"]
+
+[tool.coverage.report]
+fail_under = 90
