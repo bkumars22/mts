@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Changed
+- Switched the web frontend from a dark theme to a light one, with green as the single accent color (upload dropzone, buttons, focus states, links). All text/surface colors are now driven by tokens in `index.css` (`--color-mts-*`) instead of hardcoded dark-mode Tailwind grays, so a future theme change only touches one file.
+
 ### Fixed
 - `mts.chaitrishodaya.com` DNS is now live - switched `vite.config.ts` `base` from `/mts/` back to `/` and `404.html`'s `pathSegmentsToKeep` from `1` to `0` to match serving from the domain root instead of the `bkumars22.github.io/mts/` subpath. Repointed the README's demo link accordingly. Note: this means the plain `bkumars22.github.io/mts/` URL's assets will 404 again - a single build can only be correct for one of the two.
 

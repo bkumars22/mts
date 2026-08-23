@@ -48,8 +48,8 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
         focus-visible:ring-2 focus-visible:ring-mts-accent focus-visible:ring-offset-2 focus-visible:ring-offset-mts-bg
         ${
           isDragOver
-            ? "border-mts-accent bg-mts-accent/10"
-            : "border-mts-border bg-mts-surface hover:border-mts-border-hover"
+            ? "border-mts-accent bg-mts-accent-dim"
+            : "border-mts-accent/40 bg-mts-surface hover:border-mts-accent"
         }`}
     >
       <input
@@ -64,7 +64,7 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
         }}
       />
       <svg
-        className={`h-10 w-10 transition-colors ${isDragOver ? "text-mts-accent" : "text-gray-500 group-hover:text-gray-400"}`}
+        className="h-10 w-10 text-mts-accent transition-colors"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -78,10 +78,10 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
         />
       </svg>
       <div>
-        <p className="text-sm font-medium text-gray-200">
+        <p className="text-sm font-medium text-mts-text">
           Drag and drop your CSV, JSON, or Excel file here
         </p>
-        <p className="mt-1 text-xs text-gray-500">or click to browse - nothing leaves your browser</p>
+        <p className="mt-1 text-xs text-mts-faint">or click to browse - nothing leaves your browser</p>
       </div>
     </div>
   )

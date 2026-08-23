@@ -14,7 +14,7 @@ export function TrustScoreTable({ reports }: TrustScoreTableProps) {
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-mts-border text-xs tracking-wide text-gray-500 uppercase">
+            <tr className="border-b border-mts-border text-xs tracking-wide text-mts-faint uppercase">
               <th scope="col" className="px-4 py-3 font-semibold">
                 Metric
               </th>
@@ -32,14 +32,14 @@ export function TrustScoreTable({ reports }: TrustScoreTableProps) {
           <tbody>
             {reports.map((report) => (
               <tr key={report.metricName} className="border-b border-mts-border last:border-0">
-                <td className="px-4 py-3 font-mono text-gray-200">{report.metricName}</td>
-                <td className="px-4 py-3 text-right font-mono text-gray-200">
+                <td className="px-4 py-3 font-mono text-mts-text">{report.metricName}</td>
+                <td className="px-4 py-3 text-right font-mono text-mts-text">
                   {formatValue(report.latestValue)}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <TrustScoreBadge score={report.trustScore} />
                 </td>
-                <td className="px-4 py-3 text-gray-400">
+                <td className="px-4 py-3 text-mts-muted">
                   {report.reasons.length > 0 ? (
                     <ul className="space-y-1.5">
                       {report.reasons.map((reason, i) => (
@@ -47,7 +47,7 @@ export function TrustScoreTable({ reports }: TrustScoreTableProps) {
                       ))}
                     </ul>
                   ) : (
-                    <span className="text-gray-600">-</span>
+                    <span className="text-mts-faint">-</span>
                   )}
                 </td>
               </tr>
@@ -59,7 +59,7 @@ export function TrustScoreTable({ reports }: TrustScoreTableProps) {
       {notes.length > 0 && (
         <div className="mt-3 space-y-1">
           {notes.map((note) => (
-            <p key={note} className="flex items-start gap-1.5 text-xs text-gray-500">
+            <p key={note} className="flex items-start gap-1.5 text-xs text-mts-faint">
               <span aria-hidden="true">i</span>
               <span>{note}</span>
             </p>

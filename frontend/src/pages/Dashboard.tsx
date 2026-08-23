@@ -44,6 +44,9 @@ function initialState(): ViewState {
   }
 }
 
+const ACTION_BUTTON =
+  "rounded-lg border border-mts-accent px-3 py-1.5 text-xs font-semibold text-mts-accent transition-colors hover:bg-mts-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent focus-visible:ring-offset-2 focus-visible:ring-offset-mts-bg"
+
 export default function Dashboard() {
   const [state, setState] = useState<ViewState>(initialState)
 
@@ -93,16 +96,16 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-mts-bg text-gray-100">
+    <div className="min-h-screen bg-mts-bg text-mts-text">
       <Header />
 
       <main className="mx-auto max-w-4xl px-6 py-12">
         {state.kind !== "results" && (
           <div className="mb-10 text-center">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
+            <h2 className="text-2xl font-bold text-mts-text sm:text-3xl">
               Your dashboard says 94% accuracy.
             </h2>
-            <p className="mt-2 text-lg text-gray-400">
+            <p className="mt-2 text-lg text-mts-muted">
               Is that based on enough data to mean anything?
             </p>
           </div>
@@ -120,10 +123,10 @@ export default function Dashboard() {
           <div>
             <div
               role="alert"
-              className="rounded-xl border border-mts-low/40 bg-mts-low-bg px-5 py-4 text-sm text-red-300"
+              className="rounded-xl border border-mts-low/30 bg-mts-low-bg px-5 py-4 text-sm"
             >
-              <p className="font-semibold text-red-200">Couldn&apos;t analyze this file</p>
-              <p className="mt-1 text-red-300/90">{state.message}</p>
+              <p className="font-semibold text-mts-low">Couldn&apos;t analyze this file</p>
+              <p className="mt-1 text-mts-low/90">{state.message}</p>
             </div>
             <div className="mt-6">
               <FileDropzone onFileSelected={handleFileSelected} />
@@ -136,27 +139,23 @@ export default function Dashboard() {
         {state.kind === "results" && (
           <div>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="font-mono text-sm text-gray-400">{state.filename}</p>
+              <p className="font-mono text-sm text-mts-muted">{state.filename}</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => downloadCsvReport(state.filename, state.reports)}
-                  className="rounded-lg border border-mts-border px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-mts-border-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
+                  className={ACTION_BUTTON}
                 >
                   Download CSV
                 </button>
                 <button
                   type="button"
                   onClick={() => downloadPdfReport(state.filename, state.reports)}
-                  className="rounded-lg border border-mts-border px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-mts-border-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
+                  className={ACTION_BUTTON}
                 >
                   Download PDF Report
                 </button>
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="rounded-lg border border-mts-border px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-mts-border-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
-                >
+                <button type="button" onClick={reset} className={ACTION_BUTTON}>
                   Analyze another file
                 </button>
               </div>
@@ -166,9 +165,9 @@ export default function Dashboard() {
         )}
       </main>
 
-      <footer className="px-6 py-8 text-center text-xs text-gray-600">
+      <footer className="px-6 py-8 text-center text-xs text-mts-faint">
         Runs entirely in your browser - no file ever leaves your device. Part of the{" "}
-        <a href="https://chaitrishodaya.com" className="underline hover:text-gray-400">
+        <a href="https://chaitrishodaya.com" className="underline hover:text-mts-accent">
           Chaitrishodaya
         </a>{" "}
         AI quality systems portfolio.

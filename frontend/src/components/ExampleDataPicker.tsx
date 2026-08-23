@@ -24,17 +24,17 @@ interface ExampleDataPickerProps {
 export function ExampleDataPicker({ onExampleSelected }: ExampleDataPickerProps) {
   return (
     <div className="mt-6">
-      <p className="text-center text-xs text-gray-500">Or try an example</p>
+      <p className="text-center text-xs text-mts-faint">Or try an example</p>
       <div className="mt-3 flex flex-wrap justify-center gap-2">
         {EXAMPLES.map((example) => (
           <button
             key={example.filename}
             type="button"
             onClick={() => onExampleSelected(example.filename, example.text)}
-            className="rounded-lg border border-mts-border bg-mts-surface px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-mts-border-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
+            className="rounded-lg border border-mts-border bg-mts-surface px-3 py-1.5 text-xs font-medium text-mts-muted transition-colors hover:border-mts-accent hover:text-mts-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
           >
             {example.label}
-            <span className="ml-1.5 text-gray-500">- {example.hint}</span>
+            <span className="ml-1.5 text-mts-faint">- {example.hint}</span>
           </button>
         ))}
       </div>
