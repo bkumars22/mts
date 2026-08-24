@@ -52,6 +52,9 @@ pip install -e ".[dev]"
 mts analyze --input metrics.csv
 mts analyze --input metrics.json --output report.json   # also save a structured JSON report
 mts analyze --input metrics.csv --verbose                # debug logging
+
+# Column names don't match? Map them instead of renaming the file:
+mts analyze --input data.csv --map metric_name=description,timestamp=date,value=score
 ```
 
 **Input format** — a CSV or JSON file of metric records:
@@ -62,6 +65,8 @@ mts analyze --input metrics.csv --verbose                # debug logging
 | `metric_name` | yes | Which metric this record belongs to |
 | `value` | yes | The metric's value |
 | `sample_size` | no | Enables the sample size adequacy check when present |
+
+If your file uses different column names, `--map` renames them before validation — no need to edit the file. The web version does the same thing with an auto-detected, editable mapping screen instead of a flag (see below).
 
 ## The Three Checks
 
@@ -75,7 +80,18 @@ mts analyze --input metrics.csv --verbose                # debug logging
 
 ## Web (client-side)
 
-`frontend/` ports the same three checks to TypeScript so the browser can analyze an uploaded CSV, JSON, **or Excel** file directly — no backend, works fully offline once loaded. A parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) runs both engines against the same canonical fixtures in `tests/fixtures/` to keep them in sync. It also offers downloadable input templates, CSV/PDF report export, and a `/help` page — see `frontend/README.md` for detail.
+`frontend/` ports the same three checks to TypeScript so the browser can analyze an uploaded CSV, JSON, **or Excel** file directly — no backend, works fully offline once loaded. A parity test suite (`frontend/src/lib/checks/__tests__/parity.test.ts`) runs both engines against the same canonical fixtures in `tests/fixtures/` to keep them in sync.
+
+Beyond the core checks, the web version adds:
+
+- **Column mapping** — a file with different column names doesn't dead-end. MTS auto-detects a best-guess mapping and shows it as an editable confirmation screen before running any analysis; a confirmed mapping is remembered so re-uploading a similarly-shaped file skips straight to results.
+- **Try it with sample data** — four built-in scenarios (clean / coverage gap / low sample size / outliers) run real analysis with no upload required.
+- **Drag-and-drop upload** — a mismatched-column file skips the dead-end error entirely and goes straight to the mapping screen, which shows both the columns found and the columns expected.
+- **A trend chart** per metric, alongside the results table, with confirmed outliers highlighted and a hover tooltip.
+- **Shareable results links** — a completed analysis can be copied as a link that encodes the results (not the raw file) directly in the URL; opening it renders the results with no backend and no re-analysis.
+- Downloadable input templates, CSV/PDF report export, and a `/help` page.
+
+See `frontend/README.md` for implementation detail.
 
 ```bash
 cd frontend

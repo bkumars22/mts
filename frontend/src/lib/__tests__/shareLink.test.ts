@@ -41,6 +41,37 @@ describe("shareLink", () => {
     expect(decoded.reports[0].history.some((p) => p.isOutlier)).toBe(true)
   })
 
+  it("does not carry notes over - not part of the payload, so always empty on decode", async () => {
+    const reports = analyze("sample_metrics_gap.csv")
+    const encoded = await encodeShareableReports("gap.csv", reports)
+    const decoded = await decodeShareableReports(encoded)
+    for (const report of decoded.reports) {
+      expect(report.notes).toEqual([])
+    }
+  })
+
+  it("is meaningfully smaller than compressing the verbose report shape directly", async () => {
+    const reports = analyze("sample_metrics_clean.csv")
+    const encoded = await encodeShareableReports("clean.csv", reports)
+
+    // What encoding would look like without the short-key/epoch-timestamp
+    // wire format - i.e. gzip+base64url over MetricTrustReport as-is. This
+    // is what regressed in practice: gzip alone doesn't recover verbose
+    // keys/ISO date strings on a small payload, so the link came out
+    // needlessly long. Guards against reintroducing that regression.
+    const naiveJson = JSON.stringify({ label: "clean.csv", reports })
+    const naiveGz = new CompressionStream("gzip")
+    const writer = naiveGz.writable.getWriter()
+    void writer.write(new TextEncoder().encode(naiveJson))
+    void writer.close()
+    const naiveBytes = new Uint8Array(await new Response(naiveGz.readable).arrayBuffer())
+    let naiveBinary = ""
+    for (const b of naiveBytes) naiveBinary += String.fromCharCode(b)
+    const naiveEncoded = btoa(naiveBinary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+
+    expect(encoded.length).toBeLessThan(naiveEncoded.length * 0.85)
+  })
+
   it("produces a URL-safe string with no padding characters", async () => {
     const reports = analyze("sample_metrics_clean.csv")
     const encoded = await encodeShareableReports("clean.csv", reports)

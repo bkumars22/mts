@@ -1,32 +1,41 @@
 /**
  * Encodes a completed analysis (trust scores, reasons, and per-metric
- * history for the chart - not the raw input file) into a gzip-compressed,
- * base64url string suitable for a URL fragment, so results can be shared
- * with no backend: the whole payload lives in the link itself. Uses the
- * browser's native CompressionStream/DecompressionStream - no extra
- * dependency for something this small.
+ * history for the chart - not the raw input file, and not the skip notes,
+ * which aren't part of what the spec asks a share link to carry) into a
+ * gzip-compressed, base64url string for a URL fragment, so results can be
+ * shared with no backend: the whole payload lives in the link itself.
+ * Uses the browser's native CompressionStream/DecompressionStream - no
+ * extra dependency for something this small.
+ *
+ * The wire format uses short keys and epoch-millisecond timestamps rather
+ * than the verbose MetricTrustReport/TrendPoint shape - gzip can't recover
+ * much of that verbosity on a small payload (a handful of points for one
+ * or two metrics), where every byte before compression still counts.
  */
-import type { MetricTrustReport, TrendPoint } from "./checks/types"
+import type { MetricTrustReport, TrustScore } from "./checks/types"
 
 export const SHARE_HASH_PREFIX = "s="
 
 export class ShareLinkError extends Error {}
 
-interface SharePayload {
-  label: string
-  reports: MetricTrustReport[]
+interface WireTrendPoint {
+  t: number
+  v: number
+  o?: true // omitted (not just false) for the common non-outlier case
 }
 
-/** JSON.stringify turns Date into an ISO string - this is what a payload
- * actually looks like on the wire, before dates are revived on decode. */
-type SerializedTrendPoint = Omit<TrendPoint, "timestamp"> & { timestamp: string }
-type SerializedReport = Omit<MetricTrustReport, "latestTimestamp" | "history"> & {
-  latestTimestamp: string
-  history: SerializedTrendPoint[]
+interface WireReport {
+  mn: string
+  lv: number
+  lt: number
+  ts: TrustScore
+  rs: string[]
+  hi: WireTrendPoint[]
 }
-interface SerializedPayload {
-  label: string
-  reports: SerializedReport[]
+
+interface WirePayload {
+  l: string
+  r: WireReport[]
 }
 
 export function isShareLinkSupported(): boolean {
@@ -37,7 +46,8 @@ export async function encodeShareableReports(
   label: string,
   reports: MetricTrustReport[],
 ): Promise<string> {
-  const json = JSON.stringify({ label, reports } satisfies SharePayload)
+  const wire: WirePayload = { l: label, r: reports.map(toWireReport) }
+  const json = JSON.stringify(wire)
   const compressed = await gzip(new TextEncoder().encode(json))
   return base64UrlEncode(compressed)
 }
@@ -54,28 +64,54 @@ export async function decodeShareableReports(
     throw new ShareLinkError("This share link is corrupted or incomplete.")
   }
 
-  let parsed: SerializedPayload
+  let parsed: WirePayload
   try {
-    parsed = JSON.parse(json) as SerializedPayload
+    parsed = JSON.parse(json) as WirePayload
   } catch {
     throw new ShareLinkError("This share link is corrupted or incomplete.")
   }
 
-  if (!parsed || typeof parsed.label !== "string" || !Array.isArray(parsed.reports)) {
+  if (!parsed || typeof parsed.l !== "string" || !Array.isArray(parsed.r)) {
     throw new ShareLinkError("This share link doesn't contain valid MTS results.")
   }
 
   return {
-    label: parsed.label,
-    reports: parsed.reports.map(reviveReport),
+    label: parsed.l,
+    reports: parsed.r.map(fromWireReport),
   }
 }
 
-function reviveReport(report: SerializedReport): MetricTrustReport {
+function toWireReport(report: MetricTrustReport): WireReport {
   return {
-    ...report,
-    latestTimestamp: new Date(report.latestTimestamp),
-    history: report.history.map((point) => ({ ...point, timestamp: new Date(point.timestamp) })),
+    mn: report.metricName,
+    lv: report.latestValue,
+    lt: report.latestTimestamp.getTime(),
+    ts: report.trustScore,
+    rs: report.reasons,
+    hi: report.history.map((point) =>
+      point.isOutlier
+        ? { t: point.timestamp.getTime(), v: point.value, o: true }
+        : { t: point.timestamp.getTime(), v: point.value },
+    ),
+  }
+}
+
+/** Notes (why a check was skipped) aren't part of the payload, so they
+ * always come back empty - a deliberate size tradeoff, not data loss of
+ * anything the spec calls for a share link to reproduce. */
+function fromWireReport(wire: WireReport): MetricTrustReport {
+  return {
+    metricName: wire.mn,
+    latestValue: wire.lv,
+    latestTimestamp: new Date(wire.lt),
+    trustScore: wire.ts,
+    reasons: wire.rs,
+    notes: [],
+    history: wire.hi.map((point) => ({
+      timestamp: new Date(point.t),
+      value: point.v,
+      isOutlier: point.o === true,
+    })),
   }
 }
 
