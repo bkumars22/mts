@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ColumnMappingScreen } from "../components/ColumnMappingScreen"
 import { ExampleDataPicker } from "../components/ExampleDataPicker"
 import { FileDropzone } from "../components/FileDropzone"
@@ -27,6 +27,13 @@ import {
 } from "../lib/parseInput"
 import type { InputFile } from "../lib/persistence"
 import { clearLastAnalysis, loadLastAnalysis, saveLastAnalysis } from "../lib/persistence"
+import {
+  decodeShareableReports,
+  encodeShareableReports,
+  isShareLinkSupported,
+  SHARE_HASH_PREFIX,
+  ShareLinkError,
+} from "../lib/shareLink"
 
 interface NeedsMapping {
   filename: string
@@ -36,6 +43,7 @@ interface NeedsMapping {
 
 type ViewState =
   | { kind: "idle" }
+  | { kind: "loading" }
   | { kind: "error"; message: string }
   | {
       kind: "mapping"
@@ -46,6 +54,14 @@ type ViewState =
       guesses: ColumnMapping
     }
   | { kind: "results"; filename: string; reports: MetricTrustReport[] }
+
+/** A shared-results link puts its payload after `#s=` in the URL fragment
+ * (see shareLink.ts) - null when the current URL isn't one. */
+function readShareHash(): string | null {
+  const hash = window.location.hash
+  const prefix = `#${SHARE_HASH_PREFIX}`
+  return hash.startsWith(prefix) ? hash.slice(prefix.length) : null
+}
 
 type Resolved =
   | { ok: true; records: ReturnType<typeof rowsToRecords> }
@@ -163,6 +179,11 @@ function toViewState(result: ProcessResult, files: InputFile[], persist: boolean
 // mapping was separately cleared), fall back to idle rather than
 // surprising the user with a mapping step on page load.
 function initialState(): ViewState {
+  // A shared-results link takes priority over restoring a local analysis,
+  // and decoding it is async - render "loading" now, resolve it in an
+  // effect, rather than briefly flashing a stale local restore first.
+  if (readShareHash()) return { kind: "loading" }
+
   const files = loadLastAnalysis()
   if (!files) return { kind: "idle" }
   try {
@@ -206,6 +227,46 @@ const BACK_BUTTON =
 
 export default function Dashboard() {
   const [state, setState] = useState<ViewState>(initialState)
+  const [shareStatus, setShareStatus] = useState<"idle" | "copying" | "copied" | "error">("idle")
+
+  useEffect(() => {
+    const encoded = readShareHash()
+    if (!encoded) return
+
+    let cancelled = false
+    decodeShareableReports(encoded)
+      .then(({ label, reports }) => {
+        if (!cancelled) setState({ kind: "results", filename: label, reports })
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const message =
+          err instanceof ShareLinkError ? err.message : "Failed to load the shared results."
+        setState({ kind: "error", message })
+      })
+      .finally(() => {
+        // Don't let a refresh (or clicking around) re-trigger this link.
+        window.history.replaceState(null, "", window.location.pathname + window.location.search)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleCopyShareLink = useCallback(() => {
+    if (state.kind !== "results") return
+    setShareStatus("copying")
+    encodeShareableReports(state.filename, state.reports)
+      .then((encoded) => {
+        const url = `${window.location.origin}${window.location.pathname}${window.location.search}#${SHARE_HASH_PREFIX}${encoded}`
+        return navigator.clipboard.writeText(url)
+      })
+      .then(() => setShareStatus("copied"))
+      .catch(() => setShareStatus("error"))
+      .finally(() => {
+        setTimeout(() => setShareStatus("idle"), 2000)
+      })
+  }, [state])
 
   const handleFiles = useCallback((files: InputFile[], persist: boolean) => {
     const result = processFiles(files)
@@ -249,7 +310,11 @@ export default function Dashboard() {
       <Header />
 
       <main className="mx-auto max-w-4xl px-6 py-12">
-        {state.kind !== "results" && state.kind !== "mapping" && (
+        {state.kind === "loading" && (
+          <p className="text-center text-sm text-mts-muted">Loading shared results...</p>
+        )}
+
+        {state.kind !== "results" && state.kind !== "mapping" && state.kind !== "loading" && (
           <div className="mb-10 text-center">
             <h2 className="text-2xl font-bold text-mts-text sm:text-3xl">
               Your dashboard says 94% accuracy.
@@ -305,6 +370,17 @@ export default function Dashboard() {
                 <p className="font-mono text-sm text-mts-muted">{state.filename}</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                {isShareLinkSupported() && (
+                  <button type="button" onClick={handleCopyShareLink} className={ACTION_BUTTON}>
+                    {shareStatus === "copied"
+                      ? "Copied!"
+                      : shareStatus === "copying"
+                        ? "Copying..."
+                        : shareStatus === "error"
+                          ? "Couldn't copy"
+                          : "Copy shareable link"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => downloadCsvReport(state.filename, state.reports)}
