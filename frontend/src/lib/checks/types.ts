@@ -55,6 +55,14 @@ export interface OutlierInfluenceResult {
   reason: string | null
 }
 
+/** One point in a metric's history, for the trend chart - `isOutlier` marks
+ * points the outlier-influence check confirmed, not just any high/low value. */
+export interface TrendPoint {
+  timestamp: Date
+  value: number
+  isOutlier: boolean
+}
+
 export interface MetricTrustReport {
   metricName: string
   latestValue: number
@@ -62,4 +70,5 @@ export interface MetricTrustReport {
   trustScore: TrustScore
   reasons: string[]
   notes: string[]
+  history: TrendPoint[]
 }

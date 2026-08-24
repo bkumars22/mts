@@ -5,6 +5,7 @@ All notable changes to this project are documented here.
 ## [Unreleased]
 
 ### Added
+- Visual trend chart (v0.2 Feature 4): each metric's results now include a lightweight SVG line chart of its value over time, alongside the existing text table (not replacing it). Points the outlier-influence check confirmed render larger and in red, with a "flagged outlier" legend; hovering any point shows its exact value, timestamp, and flagged/normal status. `MetricTrustReport` gained a `history: TrendPoint[]` field (each point's timestamp, value, and outlier flag) so the chart has what it needs without recomputing anything. No new dependency - built as plain SVG.
 - Drag-and-drop + clearer mismatch errors (v0.2 Feature 3): the dropzone already had drag-and-drop with a visual drag-over state, and a single mismatched-column file already skips straight to the mapping screen rather than erroring out - so this closed the two remaining gaps. The mapping screen now lists "Expected columns" alongside "Columns found in your file" instead of only implying the expected set through field labels. The rare case of uploading a batch of files with two-or-more genuinely different (non-matching) column layouts now reports each file group's actual found columns, instead of just naming the files.
 
 ### Changed

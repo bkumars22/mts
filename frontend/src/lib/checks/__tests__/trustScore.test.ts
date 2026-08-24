@@ -132,6 +132,32 @@ describe("computeTrustScore branch logic", () => {
     expect(reports[0].reasons).toHaveLength(3)
   })
 
+  it("marks confirmed-outlier points in history, leaves the rest unmarked", () => {
+    const older: MetricRecord = { ...RECORD, timestamp: new Date("2026-07-01T00:00:00") }
+    const reports = computeTrustScore(
+      [older, RECORD],
+      [cleanCompleteness()],
+      [cleanSampleSize()],
+      [flaggedOutlier()],
+    )
+    expect(reports[0].history).toHaveLength(2)
+    expect(reports[0].history[0].isOutlier).toBe(false)
+    expect(reports[0].history[1].isOutlier).toBe(true)
+    expect(reports[0].history[1].value).toBe(RECORD.value)
+  })
+
+  it("history is empty of outlier flags when the check is skipped", () => {
+    const reports = computeTrustScore(
+      [RECORD],
+      [cleanCompleteness()],
+      [cleanSampleSize()],
+      [{ ...cleanOutlier(), skipped: true, note: "not enough history" }],
+    )
+    expect(reports[0].history).toEqual([
+      { timestamp: RECORD.timestamp, value: RECORD.value, isOutlier: false },
+    ])
+  })
+
   it("a skipped check never counts as a flag", () => {
     const reports = computeTrustScore(
       [RECORD],

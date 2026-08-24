@@ -59,16 +59,24 @@ export function computeTrustScore(
     }
 
     const outlier = outlierByMetric.get(metricName)
+    const outlierTimestamps = new Set<number>()
     if (outlier) {
       if (outlier.skipped) {
         notes.push(outlier.note ?? "outlier influence check skipped")
       } else if (outlier.confirmedOutliers.length > 0) {
         flagCount += 1
         reasons.push(outlier.reason as string)
+        for (const o of outlier.confirmedOutliers) outlierTimestamps.add(o.timestamp.getTime())
       }
     }
 
     const trustScore = flagCount === 0 ? TRUST_HIGH : flagCount === 1 ? TRUST_MEDIUM : TRUST_LOW
+
+    const history = sorted.map((record) => ({
+      timestamp: record.timestamp,
+      value: record.value,
+      isOutlier: outlierTimestamps.has(record.timestamp.getTime()),
+    }))
 
     return {
       metricName,
@@ -77,6 +85,7 @@ export function computeTrustScore(
       trustScore,
       reasons,
       notes,
+      history,
     }
   })
 }

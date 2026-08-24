@@ -4,6 +4,7 @@ import { ExampleDataPicker } from "../components/ExampleDataPicker"
 import { FileDropzone } from "../components/FileDropzone"
 import { Header } from "../components/Header"
 import { TemplateDownloads } from "../components/TemplateDownloads"
+import { TrendChart } from "../components/TrendChart"
 import { TrustScoreTable } from "../components/TrustScoreTable"
 import { checkCompleteness } from "../lib/checks/completeness"
 import { checkOutlierInfluence } from "../lib/checks/outlierInfluence"
@@ -321,6 +322,19 @@ export default function Dashboard() {
               </div>
             </div>
             <TrustScoreTable reports={state.reports} />
+
+            <div className="mt-8">
+              <p className="text-xs font-semibold tracking-wide text-mts-faint uppercase">Trends</p>
+              <div className="mt-3 space-y-4">
+                {state.reports.map((report) => (
+                  <TrendChart
+                    key={report.metricName}
+                    metricName={report.metricName}
+                    points={report.history}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </main>
