@@ -1,23 +1,31 @@
 /**
- * Persists the last successfully analyzed file so a page refresh restores
- * the results instead of resetting to the upload screen. Everything is
- * stored client-side (localStorage) - nothing is sent anywhere.
+ * Persists the last successfully analyzed file(s) so a page refresh
+ * restores the results instead of resetting to the upload screen.
+ * Everything is stored client-side (localStorage) - nothing is sent
+ * anywhere. Supports multiple files since a single analysis can now
+ * combine records from more than one upload.
  */
 
 const STORAGE_KEY = "mts:lastAnalysis"
 
-interface StoredAnalysis {
+export interface InputFile {
+  filename: string
+  data: string | ArrayBuffer
+}
+
+interface StoredFile {
   filename: string
   encoding: "text" | "base64"
   content: string
 }
 
-export function saveLastAnalysis(filename: string, data: string | ArrayBuffer): void {
+export function saveLastAnalysis(files: InputFile[]): void {
   try {
-    const stored: StoredAnalysis =
-      typeof data === "string"
-        ? { filename, encoding: "text", content: data }
-        : { filename, encoding: "base64", content: arrayBufferToBase64(data) }
+    const stored: StoredFile[] = files.map((f) =>
+      typeof f.data === "string"
+        ? { filename: f.filename, encoding: "text", content: f.data }
+        : { filename: f.filename, encoding: "base64", content: arrayBufferToBase64(f.data) },
+    )
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   } catch {
     // localStorage can be unavailable (private browsing, quota) - persistence
@@ -25,13 +33,16 @@ export function saveLastAnalysis(filename: string, data: string | ArrayBuffer): 
   }
 }
 
-export function loadLastAnalysis(): { filename: string; data: string | ArrayBuffer } | null {
+export function loadLastAnalysis(): InputFile[] | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    const stored = JSON.parse(raw) as StoredAnalysis
-    const data = stored.encoding === "text" ? stored.content : base64ToArrayBuffer(stored.content)
-    return { filename: stored.filename, data }
+    const stored = JSON.parse(raw) as unknown
+    if (!Array.isArray(stored) || stored.length === 0) return null
+    return (stored as StoredFile[]).map((f) => ({
+      filename: f.filename,
+      data: f.encoding === "text" ? f.content : base64ToArrayBuffer(f.content),
+    }))
   } catch {
     return null
   }

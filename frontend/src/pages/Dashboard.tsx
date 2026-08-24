@@ -10,7 +10,8 @@ import { checkSampleSize } from "../lib/checks/sampleSize"
 import { computeTrustScore } from "../lib/checks/trustScore"
 import type { MetricTrustReport } from "../lib/checks/types"
 import { downloadCsvReport, downloadPdfReport } from "../lib/exportReport"
-import { detectInputKind, MTSDataError, parseInput } from "../lib/parseInput"
+import { detectInputKind, type InputKind, MTSDataError, parseInput } from "../lib/parseInput"
+import type { InputFile } from "../lib/persistence"
 import { clearLastAnalysis, loadLastAnalysis, saveLastAnalysis } from "../lib/persistence"
 
 type ViewState =
@@ -18,8 +19,18 @@ type ViewState =
   | { kind: "error"; message: string }
   | { kind: "results"; filename: string; reports: MetricTrustReport[] }
 
-function analyze(filename: string, data: string | ArrayBuffer): MetricTrustReport[] {
-  const records = parseInput(filename, data)
+// Combines records from every uploaded file before running the checks, so
+// uploading e.g. week1.csv + week2.csv for the same metric analyzes them
+// together rather than as two unrelated reports.
+function analyzeFiles(files: InputFile[]): MetricTrustReport[] {
+  const records = files.flatMap((f) => {
+    try {
+      return parseInput(f.filename, f.data)
+    } catch (err) {
+      const message = err instanceof MTSDataError ? err.message : "Failed to analyze this file."
+      throw new MTSDataError(files.length > 1 ? `${f.filename}: ${message}` : message)
+    }
+  })
   return computeTrustScore(
     records,
     checkCompleteness(records),
@@ -28,20 +39,47 @@ function analyze(filename: string, data: string | ArrayBuffer): MetricTrustRepor
   )
 }
 
+function displayName(files: InputFile[]): string {
+  return files.map((f) => f.filename).join(", ")
+}
+
 // Restores the last successful analysis, so refreshing the page doesn't
 // silently drop back to the empty upload screen. localStorage is read
 // synchronously, so this runs as a lazy useState initializer rather than
 // an effect - no extra render, no external system to synchronize with.
 function initialState(): ViewState {
-  const last = loadLastAnalysis()
-  if (!last) return { kind: "idle" }
+  const files = loadLastAnalysis()
+  if (!files) return { kind: "idle" }
   try {
-    const reports = analyze(last.filename, last.data)
-    return { kind: "results", filename: last.filename, reports }
+    const reports = analyzeFiles(files)
+    return { kind: "results", filename: displayName(files), reports }
   } catch {
+    // The stored data no longer parses (e.g. changed shape between
+    // versions) - it's unusable, so clear it rather than failing on
+    // every future load too.
     clearLastAnalysis()
     return { kind: "idle" }
   }
+}
+
+function readFile(file: File): Promise<InputFile> {
+  return new Promise((resolve, reject) => {
+    let kind: InputKind
+    try {
+      kind = detectInputKind(file.name)
+    } catch (err) {
+      reject(err)
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => resolve({ filename: file.name, data: reader.result as string | ArrayBuffer })
+    reader.onerror = () => reject(new MTSDataError(`Failed to read ${file.name}.`))
+    if (kind === "excel") {
+      reader.readAsArrayBuffer(file)
+    } else {
+      reader.readAsText(file)
+    }
+  })
 }
 
 const ACTION_BUTTON =
@@ -53,11 +91,11 @@ const BACK_BUTTON =
 export default function Dashboard() {
   const [state, setState] = useState<ViewState>(initialState)
 
-  const handleData = useCallback((filename: string, data: string | ArrayBuffer, persist: boolean) => {
+  const handleFiles = useCallback((files: InputFile[], persist: boolean) => {
     try {
-      const reports = analyze(filename, data)
-      setState({ kind: "results", filename, reports })
-      if (persist) saveLastAnalysis(filename, data)
+      const reports = analyzeFiles(files)
+      setState({ kind: "results", filename: displayName(files), reports })
+      if (persist) saveLastAnalysis(files)
     } catch (err) {
       const message = err instanceof MTSDataError ? err.message : "Failed to analyze this file."
       setState({ kind: "error", message })
@@ -65,38 +103,26 @@ export default function Dashboard() {
   }, [])
 
   const handleExampleSelected = useCallback(
-    (filename: string, text: string) => handleData(filename, text, false),
-    [handleData],
+    (filename: string, text: string) => handleFiles([{ filename, data: text }], false),
+    [handleFiles],
   )
 
-  const handleFileSelected = useCallback(
-    (file: File) => {
-      const kind = (() => {
-        try {
-          return detectInputKind(file.name)
-        } catch (err) {
-          setState({ kind: "error", message: (err as MTSDataError).message })
-          return null
-        }
-      })()
-      if (!kind) return
-
-      const reader = new FileReader()
-      reader.onload = () => handleData(file.name, reader.result as string | ArrayBuffer, true)
-      reader.onerror = () => setState({ kind: "error", message: "Failed to read the file." })
-      if (kind === "excel") {
-        reader.readAsArrayBuffer(file)
-      } else {
-        reader.readAsText(file)
-      }
+  const handleFilesSelected = useCallback(
+    (files: File[]) => {
+      Promise.all(files.map(readFile))
+        .then((inputFiles) => handleFiles(inputFiles, true))
+        .catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to read the file(s)."
+          setState({ kind: "error", message })
+        })
     },
-    [handleData],
+    [handleFiles],
   )
 
-  const reset = useCallback(() => {
-    clearLastAnalysis()
-    setState({ kind: "idle" })
-  }, [])
+  // Returning to the dashboard doesn't discard the analysis - only
+  // uploading new files (or clearing storage another way) does. This way
+  // a refresh (or navigating away and back) doesn't lose your results.
+  const reset = useCallback(() => setState({ kind: "idle" }), [])
 
   return (
     <div className="min-h-screen bg-mts-bg text-mts-text">
@@ -116,7 +142,7 @@ export default function Dashboard() {
 
         {state.kind === "idle" && (
           <>
-            <FileDropzone onFileSelected={handleFileSelected} />
+            <FileDropzone onFilesSelected={handleFilesSelected} />
             <ExampleDataPicker onExampleSelected={handleExampleSelected} />
             <TemplateDownloads />
           </>
@@ -132,7 +158,7 @@ export default function Dashboard() {
               <p className="mt-1 text-mts-low/90">{state.message}</p>
             </div>
             <div className="mt-6">
-              <FileDropzone onFileSelected={handleFileSelected} />
+              <FileDropzone onFilesSelected={handleFilesSelected} />
               <ExampleDataPicker onExampleSelected={handleExampleSelected} />
               <TemplateDownloads />
             </div>
@@ -142,7 +168,7 @@ export default function Dashboard() {
         {state.kind === "results" && (
           <div>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button type="button" onClick={reset} className={BACK_BUTTON}>
                   <span aria-hidden="true">&larr;</span> Back to Dashboard
                 </button>

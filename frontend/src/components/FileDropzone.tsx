@@ -2,10 +2,10 @@ import { useCallback, useRef, useState } from "react"
 import type { DragEvent, KeyboardEvent } from "react"
 
 interface FileDropzoneProps {
-  onFileSelected: (file: File) => void
+  onFilesSelected: (files: File[]) => void
 }
 
-export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
+export function FileDropzone({ onFilesSelected }: FileDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -15,10 +15,10 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
     (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault()
       setIsDragOver(false)
-      const file = e.dataTransfer.files[0]
-      if (file) onFileSelected(file)
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length > 0) onFilesSelected(files)
     },
-    [onFileSelected],
+    [onFilesSelected],
   )
 
   const handleKeyDown = useCallback(
@@ -35,7 +35,7 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
     <div
       role="button"
       tabIndex={0}
-      aria-label="Upload a CSV, JSON, or Excel metrics file. Drag and drop, or press Enter to browse."
+      aria-label="Upload one or more CSV, JSON, or Excel metrics files. Drag and drop, or press Enter to browse."
       onClick={openFilePicker}
       onKeyDown={handleKeyDown}
       onDragOver={(e) => {
@@ -56,10 +56,11 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
         ref={inputRef}
         type="file"
         accept=".csv,.json,.xlsx,.xls"
+        multiple
         className="sr-only"
         onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) onFileSelected(file)
+          const files = Array.from(e.target.files ?? [])
+          if (files.length > 0) onFilesSelected(files)
           e.target.value = ""
         }}
       />
@@ -79,9 +80,11 @@ export function FileDropzone({ onFileSelected }: FileDropzoneProps) {
       </svg>
       <div>
         <p className="text-sm font-medium text-mts-text">
-          Drag and drop your CSV, JSON, or Excel file here
+          Drag and drop your CSV, JSON, or Excel file(s) here
         </p>
-        <p className="mt-1 text-xs text-mts-faint">or click to browse - nothing leaves your browser</p>
+        <p className="mt-1 text-xs text-mts-faint">
+          or click to browse - you can select multiple files - nothing leaves your browser
+        </p>
       </div>
     </div>
   )

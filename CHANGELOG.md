@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- "Back to Dashboard" no longer clears the persisted analysis. It previously called `clearLastAnalysis()`, so going back and then refreshing (or navigating away and back) silently lost your results - the exact opposite of what persistence was supposed to do. It now only leaves the results view; a new upload (or an unparseable stored entry) is what actually replaces/clears the stored data.
+
+### Added
+- Multiple file upload/drop: `FileDropzone` now accepts `multiple` files at once (drag-and-drop or the file picker), and all of them are combined into a single dataset before running the three checks - so e.g. `week1.csv` + `week2.csv` for the same metric are analyzed together, not as two separate reports. Persistence, the results table, and CSV/PDF export all work the same way against the combined result; the filename display and CSV/PDF export naming reflect all uploaded files.
+
 ### Changed
 - Switched the web frontend from a dark theme to a light one, with green as the single accent color (upload dropzone, buttons, focus states, links). All text/surface colors are now driven by tokens in `index.css` (`--color-mts-*`) instead of hardcoded dark-mode Tailwind grays, so a future theme change only touches one file.
 - Re-themed the accent from green to chaitrishodaya.com's own gold/cream/navy palette (measured directly from the live site: `#faf7f1` background, `#a9790f` accent, `#1e2a3b` text, `#e7dfcc` borders), so MTS reads as part of the same portfolio. Trust score colors (HIGH/MEDIUM/LOW) are unchanged - they're a separate semantic system from the brand accent.

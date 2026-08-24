@@ -24,12 +24,14 @@ export default function Help() {
 
         <Card className="mt-8 p-6">
           <h2 className="text-sm font-semibold tracking-wide text-mts-accent uppercase">
-            1. Upload a file
+            1. Upload one or more files
           </h2>
           <p className="mt-2 text-sm text-mts-muted">
-            Drag and drop, or click to browse for a <strong className="text-mts-text">CSV</strong>
-            , <strong className="text-mts-text">JSON</strong>, or{" "}
-            <strong className="text-mts-text">Excel</strong> file. Each row needs a{" "}
+            Drag and drop, or click to browse for one or more{" "}
+            <strong className="text-mts-text">CSV</strong>,{" "}
+            <strong className="text-mts-text">JSON</strong>, or{" "}
+            <strong className="text-mts-text">Excel</strong> files - select multiple to analyze
+            them together as one combined dataset. Each row needs a{" "}
             <code className="rounded bg-mts-bg px-1 py-0.5 font-mono text-xs">timestamp</code>,{" "}
             <code className="rounded bg-mts-bg px-1 py-0.5 font-mono text-xs">metric_name</code>,
             and <code className="rounded bg-mts-bg px-1 py-0.5 font-mono text-xs">value</code>.
