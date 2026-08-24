@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Changed
+- "Try with sample data" (v0.2 Feature 2): the existing example-data picker was already functionally most of this feature (four scenario buttons, immediate real analysis, no upload required), so this made it match the spec's intent more directly rather than rebuilding it - a labeled divider, a "Try it with sample data" heading with supporting copy, and slightly more prominent buttons, replacing the small "Or try an example" caption.
+
 ### Added
 - Flexible column mapping (v0.2 Feature 1): a file whose columns don't match the exact expected names (`metric_name`/`timestamp`/`value`/`sample_size`) no longer dead-ends with an error. The web app auto-detects a best-guess mapping (date-shaped column -> timestamp, low-cardinality text -> metric_name, highest-variance numeric with decimals -> value, non-negative-integer column -> sample_size) and shows it as an editable, pre-filled confirmation screen - nothing is applied silently. A confirmed mapping is remembered per column-set in `localStorage`, so re-uploading a similarly-shaped file skips straight to results. The CLI gets the same capability via an explicit `--map metric_name=col,timestamp=col,value=col` flag (no auto-detection there, per spec); the "missing required columns" error now also lists the columns actually found in the file and points at `--map`. The existing exact-column-name fast path is unchanged for both.
 

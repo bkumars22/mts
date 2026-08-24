@@ -23,15 +23,27 @@ interface ExampleDataPickerProps {
 
 export function ExampleDataPicker({ onExampleSelected }: ExampleDataPickerProps) {
   return (
-    <div className="mt-6">
-      <p className="text-center text-xs text-mts-faint">Or try an example</p>
-      <div className="mt-3 flex flex-wrap justify-center gap-2">
+    <div className="mt-8">
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <div className="h-px flex-1 bg-mts-border" />
+        <span className="text-xs font-medium tracking-wide text-mts-faint uppercase">or</span>
+        <div className="h-px flex-1 bg-mts-border" />
+      </div>
+
+      <div className="mt-6 text-center">
+        <p className="text-sm font-semibold text-mts-text">Try it with sample data</p>
+        <p className="mt-1 text-xs text-mts-faint">
+          See what MTS finds before uploading your own file
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap justify-center gap-2.5">
         {EXAMPLES.map((example) => (
           <button
             key={example.filename}
             type="button"
             onClick={() => onExampleSelected(example.filename, example.text)}
-            className="rounded-lg border border-mts-border bg-mts-surface px-3 py-1.5 text-xs font-medium text-mts-muted transition-colors hover:border-mts-accent hover:text-mts-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
+            className="rounded-lg border border-mts-accent/40 bg-mts-surface px-4 py-2 text-sm font-medium text-mts-text transition-colors hover:border-mts-accent hover:bg-mts-accent-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mts-accent"
           >
             {example.label}
             <span className="ml-1.5 text-mts-faint">- {example.hint}</span>
