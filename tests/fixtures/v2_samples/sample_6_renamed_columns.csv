@@ -1,0 +1,11 @@
+description,date,score,n
+eval_accuracy,2026-06-01,92.1,200
+eval_accuracy,2026-06-08,93.4,205
+eval_accuracy,2026-06-15,92.8,210
+eval_accuracy,2026-06-22,94.1,200
+eval_accuracy,2026-06-29,93.7,205
+eval_accuracy,2026-07-06,92.9,210
+eval_accuracy,2026-07-13,93.2,200
+eval_accuracy,2026-07-20,94.0,205
+eval_accuracy,2026-07-27,93.5,210
+eval_accuracy,2026-08-03,92.6,200

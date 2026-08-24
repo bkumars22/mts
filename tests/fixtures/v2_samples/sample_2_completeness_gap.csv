@@ -1,0 +1,8 @@
+metric_name,timestamp,value,sample_size
+response_latency_ms,2026-06-01,340,180
+response_latency_ms,2026-06-08,342,180
+response_latency_ms,2026-06-15,344,180
+response_latency_ms,2026-06-22,346,180
+response_latency_ms,2026-07-27,356,180
+response_latency_ms,2026-08-03,358,180
+response_latency_ms,2026-08-10,360,180

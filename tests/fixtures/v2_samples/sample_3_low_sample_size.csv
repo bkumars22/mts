@@ -1,0 +1,8 @@
+metric_name,timestamp,value,sample_size
+compliance_rate,2026-06-01,94.2,210
+compliance_rate,2026-06-08,93.8,205
+compliance_rate,2026-06-15,94.5,198
+compliance_rate,2026-06-22,93.9,215
+compliance_rate,2026-06-29,96.1,12
+compliance_rate,2026-07-06,94.0,208
+compliance_rate,2026-07-13,93.7,202

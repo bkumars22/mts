@@ -56,3 +56,43 @@ def test_analyze_missing_required_column_exits_nonzero(tmp_path: Path) -> None:
     result = runner.invoke(app, ["analyze", "--input", str(bad_csv)])
     assert result.exit_code == 1
     assert "Missing required column" in result.output
+
+
+def test_analyze_with_map_handles_renamed_columns() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "--input",
+            str(FIXTURES / "v2_samples" / "sample_6_renamed_columns.csv"),
+            "--map",
+            "metric_name=description,timestamp=date,value=score,sample_size=n",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "HIGH" in result.stdout
+    assert "eval_accuracy" in result.stdout
+
+
+def test_analyze_without_map_on_renamed_columns_still_fails_clearly() -> None:
+    result = runner.invoke(
+        app, ["analyze", "--input", str(FIXTURES / "v2_samples" / "sample_6_renamed_columns.csv")]
+    )
+    assert result.exit_code == 1
+    assert "Missing required column" in result.output
+    assert "--map" in result.output
+
+
+def test_analyze_with_invalid_map_syntax_exits_nonzero() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "--input",
+            str(FIXTURES / "v2_samples" / "sample_6_renamed_columns.csv"),
+            "--map",
+            "not-a-valid-pair",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Invalid --map entry" in result.output

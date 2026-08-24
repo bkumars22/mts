@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react"
+import { ColumnMappingScreen } from "../components/ColumnMappingScreen"
 import { ExampleDataPicker } from "../components/ExampleDataPicker"
 import { FileDropzone } from "../components/FileDropzone"
 import { Header } from "../components/Header"
@@ -9,54 +10,157 @@ import { checkOutlierInfluence } from "../lib/checks/outlierInfluence"
 import { checkSampleSize } from "../lib/checks/sampleSize"
 import { computeTrustScore } from "../lib/checks/trustScore"
 import type { MetricTrustReport } from "../lib/checks/types"
+import { detectColumnMapping } from "../lib/columnDetection"
 import { downloadCsvReport, downloadPdfReport } from "../lib/exportReport"
-import { detectInputKind, type InputKind, MTSDataError, parseInput } from "../lib/parseInput"
+import { loadColumnMapping, saveColumnMapping } from "../lib/mappingStorage"
+import {
+  applyMapping,
+  type ColumnMapping,
+  detectInputKind,
+  type InputKind,
+  MissingColumnsError,
+  MTSDataError,
+  parseRawRows,
+  type RawRow,
+  rowsToRecords,
+} from "../lib/parseInput"
 import type { InputFile } from "../lib/persistence"
 import { clearLastAnalysis, loadLastAnalysis, saveLastAnalysis } from "../lib/persistence"
+
+interface NeedsMapping {
+  filename: string
+  rows: RawRow[]
+  columns: string[]
+}
 
 type ViewState =
   | { kind: "idle" }
   | { kind: "error"; message: string }
+  | {
+      kind: "mapping"
+      allFiles: InputFile[]
+      persist: boolean
+      filenames: string[]
+      columns: string[]
+      guesses: ColumnMapping
+    }
   | { kind: "results"; filename: string; reports: MetricTrustReport[] }
 
-// Combines records from every uploaded file before running the checks, so
-// uploading e.g. week1.csv + week2.csv for the same metric analyzes them
-// together rather than as two unrelated reports.
-function analyzeFiles(files: InputFile[]): MetricTrustReport[] {
-  const records = files.flatMap((f) => {
-    try {
-      return parseInput(f.filename, f.data)
-    } catch (err) {
-      const message = err instanceof MTSDataError ? err.message : "Failed to analyze this file."
-      throw new MTSDataError(files.length > 1 ? `${f.filename}: ${message}` : message)
+type Resolved =
+  | { ok: true; records: ReturnType<typeof rowsToRecords> }
+  | ({ ok: false } & NeedsMapping)
+
+/** Tries the exact-name fast path, then a remembered mapping for this
+ * file's exact column set, before giving up and asking the caller to
+ * show the mapping screen. Used both for fresh uploads and for restoring
+ * a persisted analysis, so the two stay behaviorally identical. */
+function resolveFile(file: InputFile): Resolved {
+  const rows = parseRawRows(file.filename, file.data)
+  try {
+    return { ok: true, records: rowsToRecords(rows) }
+  } catch (err) {
+    if (!(err instanceof MissingColumnsError)) throw err
+    const columns = Object.keys(rows[0] ?? {})
+    const remembered = loadColumnMapping(columns)
+    if (remembered) {
+      return { ok: true, records: rowsToRecords(applyMapping(rows, remembered)) }
     }
-  })
-  return computeTrustScore(
-    records,
-    checkCompleteness(records),
-    checkSampleSize(records),
-    checkOutlierInfluence(records),
-  )
+    return { ok: false, filename: file.filename, rows, columns }
+  }
+}
+
+type ProcessResult =
+  | { kind: "results"; reports: MetricTrustReport[] }
+  | { kind: "mapping"; filenames: string[]; columns: string[]; guesses: ColumnMapping }
+  | { kind: "error"; message: string }
+
+/** The single place that turns "files the user gave us" into either
+ * results, a request to map columns, or an error - shared by fresh
+ * uploads, mapping confirmation, and restoring a persisted analysis. */
+function processFiles(files: InputFile[]): ProcessResult {
+  let resolved: Resolved[]
+  try {
+    resolved = files.map(resolveFile)
+  } catch (err) {
+    const message = err instanceof MTSDataError ? err.message : "Failed to analyze this file."
+    return { kind: "error", message }
+  }
+
+  const needsMapping = resolved.filter((r): r is { ok: false } & NeedsMapping => !r.ok)
+  if (needsMapping.length > 0) {
+    const signatures = new Set(needsMapping.map((f) => [...f.columns].sort().join(",")))
+    if (signatures.size > 1) {
+      return {
+        kind: "error",
+        message:
+          `These files have different column layouts and can't be mapped together: ` +
+          `${needsMapping.map((f) => f.filename).join(", ")}. Upload files with matching ` +
+          `columns together, or one at a time.`,
+      }
+    }
+    const first = needsMapping[0]
+    return {
+      kind: "mapping",
+      filenames: needsMapping.map((f) => f.filename),
+      columns: first.columns,
+      guesses: detectColumnMapping(first.rows, first.columns),
+    }
+  }
+
+  const records = resolved.flatMap((r) => (r.ok ? r.records : []))
+  try {
+    const reports = computeTrustScore(
+      records,
+      checkCompleteness(records),
+      checkSampleSize(records),
+      checkOutlierInfluence(records),
+    )
+    return { kind: "results", reports }
+  } catch (err) {
+    const message = err instanceof MTSDataError ? err.message : "Failed to analyze this file."
+    return { kind: "error", message }
+  }
 }
 
 function displayName(files: InputFile[]): string {
   return files.map((f) => f.filename).join(", ")
 }
 
+function toViewState(result: ProcessResult, files: InputFile[], persist: boolean): ViewState {
+  if (result.kind === "results") {
+    return { kind: "results", filename: displayName(files), reports: result.reports }
+  }
+  if (result.kind === "mapping") {
+    return {
+      kind: "mapping",
+      allFiles: files,
+      persist,
+      filenames: result.filenames,
+      columns: result.columns,
+      guesses: result.guesses,
+    }
+  }
+  return { kind: "error", message: result.message }
+}
+
 // Restores the last successful analysis, so refreshing the page doesn't
 // silently drop back to the empty upload screen. localStorage is read
 // synchronously, so this runs as a lazy useState initializer rather than
 // an effect - no extra render, no external system to synchronize with.
+// If the stored files would need a mapping screen (e.g. the remembered
+// mapping was separately cleared), fall back to idle rather than
+// surprising the user with a mapping step on page load.
 function initialState(): ViewState {
   const files = loadLastAnalysis()
   if (!files) return { kind: "idle" }
   try {
-    const reports = analyzeFiles(files)
-    return { kind: "results", filename: displayName(files), reports }
+    const result = processFiles(files)
+    if (result.kind === "results") {
+      return { kind: "results", filename: displayName(files), reports: result.reports }
+    }
+    clearLastAnalysis()
+    return { kind: "idle" }
   } catch {
-    // The stored data no longer parses (e.g. changed shape between
-    // versions) - it's unusable, so clear it rather than failing on
-    // every future load too.
     clearLastAnalysis()
     return { kind: "idle" }
   }
@@ -92,14 +196,9 @@ export default function Dashboard() {
   const [state, setState] = useState<ViewState>(initialState)
 
   const handleFiles = useCallback((files: InputFile[], persist: boolean) => {
-    try {
-      const reports = analyzeFiles(files)
-      setState({ kind: "results", filename: displayName(files), reports })
-      if (persist) saveLastAnalysis(files)
-    } catch (err) {
-      const message = err instanceof MTSDataError ? err.message : "Failed to analyze this file."
-      setState({ kind: "error", message })
-    }
+    const result = processFiles(files)
+    setState(toViewState(result, files, persist))
+    if (result.kind === "results" && persist) saveLastAnalysis(files)
   }, [])
 
   const handleExampleSelected = useCallback(
@@ -119,6 +218,15 @@ export default function Dashboard() {
     [handleFiles],
   )
 
+  const handleMappingConfirm = useCallback(
+    (mapping: ColumnMapping) => {
+      if (state.kind !== "mapping") return
+      saveColumnMapping(state.columns, mapping)
+      handleFiles(state.allFiles, state.persist)
+    },
+    [state, handleFiles],
+  )
+
   // Returning to the dashboard doesn't discard the analysis - only
   // uploading new files (or clearing storage another way) does. This way
   // a refresh (or navigating away and back) doesn't lose your results.
@@ -129,7 +237,7 @@ export default function Dashboard() {
       <Header />
 
       <main className="mx-auto max-w-4xl px-6 py-12">
-        {state.kind !== "results" && (
+        {state.kind !== "results" && state.kind !== "mapping" && (
           <div className="mb-10 text-center">
             <h2 className="text-2xl font-bold text-mts-text sm:text-3xl">
               Your dashboard says 94% accuracy.
@@ -163,6 +271,16 @@ export default function Dashboard() {
               <TemplateDownloads />
             </div>
           </div>
+        )}
+
+        {state.kind === "mapping" && (
+          <ColumnMappingScreen
+            filenames={state.filenames}
+            columns={state.columns}
+            guesses={state.guesses}
+            onConfirm={handleMappingConfirm}
+            onCancel={reset}
+          />
         )}
 
         {state.kind === "results" && (

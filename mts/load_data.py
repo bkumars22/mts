@@ -23,9 +23,15 @@ class MTSDataError(Exception):
     stack trace."""
 
 
-def load_data(path: str | Path) -> pd.DataFrame:
+def load_data(path: str | Path, column_map: dict[str, str] | None = None) -> pd.DataFrame:
     """Read a CSV or JSON file of metric records and return a validated,
     sorted DataFrame.
+
+    Args:
+        column_map: optional mapping of {concept: actual column name in the
+            file}, e.g. {"metric_name": "description", "timestamp": "date"}.
+            Applied (as a rename) before the required-column check, for
+            files that don't use the exact expected column names.
 
     Raises:
         MTSDataError: if the file type is unsupported, the file can't be
@@ -44,11 +50,23 @@ def load_data(path: str | Path) -> pd.DataFrame:
     else:
         raise MTSDataError(f"Unsupported input file type '{suffix}' - expected .csv or .json")
 
+    if column_map:
+        missing_sources = [source for source in column_map.values() if source not in df.columns]
+        if missing_sources:
+            raise MTSDataError(
+                f"--map references column(s) not found in the file: {sorted(missing_sources)}. "
+                f"Columns in the file are: {sorted(df.columns)}."
+            )
+        df = df.rename(columns={source: concept for concept, source in column_map.items()})
+
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise MTSDataError(
             f"Missing required column(s): {sorted(missing)}. "
-            f"Required columns are: {sorted(REQUIRED_COLUMNS)}."
+            f"Required columns are: {sorted(REQUIRED_COLUMNS)}. "
+            f"Columns found in the file: {sorted(df.columns)}. "
+            f"If your file uses different names, use --map to point MTS at the right columns, "
+            f"e.g. --map metric_name=your_column,timestamp=your_column,value=your_column."
         )
 
     df["timestamp"] = pd.to_datetime(df["timestamp"])

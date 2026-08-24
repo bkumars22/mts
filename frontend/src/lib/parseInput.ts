@@ -2,16 +2,42 @@
  * Parse a CSV, JSON, or Excel metric-records file into MetricRecord[] -
  * mirrors mts/load_data.py's validation (same required columns, same style
  * of error message) so the CLI and the web tool behave identically.
+ *
+ * Split into stages so column mapping (see columnDetection.ts) can slot in
+ * between raw parsing and validation: parseRawRows -> [applyMapping] ->
+ * rowsToRecords. parseInput() chains all three for the common case where
+ * the file already uses the exact expected column names.
  */
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
 import type { MetricRecord } from "./checks/types"
 
-const REQUIRED_COLUMNS = ["timestamp", "metric_name", "value"] as const
+export const CONCEPTS = ["metric_name", "timestamp", "value", "sample_size"] as const
+export type Concept = (typeof CONCEPTS)[number]
+export const REQUIRED_CONCEPTS = ["metric_name", "timestamp", "value"] as const satisfies readonly Concept[]
+export type ColumnMapping = Partial<Record<Concept, string>>
 
 export class MTSDataError extends Error {}
 
-type RawRow = Record<string, string | number | undefined>
+/** Thrown by rowsToRecords when one or more required concepts can't be
+ * found by exact column name - carries structured data (not just a
+ * message) so the UI can offer column mapping instead of a dead end. */
+export class MissingColumnsError extends MTSDataError {
+  readonly foundColumns: string[]
+  readonly missingConcepts: Concept[]
+
+  constructor(foundColumns: string[], missingConcepts: Concept[]) {
+    super(
+      `Missing required column(s): [${[...missingConcepts].sort().join(", ")}]. ` +
+        `Required columns are: [${[...REQUIRED_CONCEPTS].sort().join(", ")}]. ` +
+        `Columns found in the file: [${[...foundColumns].sort().join(", ")}].`,
+    )
+    this.foundColumns = foundColumns
+    this.missingConcepts = missingConcepts
+  }
+}
+
+export type RawRow = Record<string, string | number | undefined>
 
 export type InputKind = "csv" | "json" | "excel"
 
@@ -26,35 +52,57 @@ export function detectInputKind(filename: string): InputKind {
 }
 
 /**
+ * Parses the file into plain rows, with no column validation - just
+ * "what's actually in this file." Used both by the fast path (parseInput)
+ * and by the column-mapping flow, which needs to inspect a file's columns
+ * before deciding whether mapping is needed.
+ *
  * @param data Text content for CSV/JSON, or an ArrayBuffer for Excel files
  *   (Excel files are binary, so they can't be read as text).
  */
-export function parseInput(filename: string, data: string | ArrayBuffer): MetricRecord[] {
+export function parseRawRows(filename: string, data: string | ArrayBuffer): RawRow[] {
   const kind = detectInputKind(filename)
 
-  let rows: RawRow[]
-  if (kind === "csv") {
-    rows = parseCsv(asText(data, filename))
-  } else if (kind === "json") {
-    rows = parseJson(asText(data, filename))
-  } else {
-    rows = parseExcel(asBuffer(data, filename))
-  }
+  const rows =
+    kind === "csv"
+      ? parseCsv(asText(data, filename))
+      : kind === "json"
+        ? parseJson(asText(data, filename))
+        : parseExcel(asBuffer(data, filename))
 
   if (rows.length === 0) {
     throw new MTSDataError("Input file has no data rows")
   }
+  return rows
+}
 
-  const columns = new Set(Object.keys(rows[0]))
-  const missing = REQUIRED_COLUMNS.filter((c) => !columns.has(c))
+/** Renames columns per the mapping (concept -> actual column name) so
+ * rowsToRecords sees the canonical names it expects. */
+export function applyMapping(rows: RawRow[], mapping: ColumnMapping): RawRow[] {
+  const renames = Object.entries(mapping).filter(([, source]) => source) as [Concept, string][]
+  if (renames.length === 0) return rows
+
+  return rows.map((row) => {
+    const mapped: RawRow = { ...row }
+    for (const [concept, source] of renames) {
+      mapped[concept] = row[source]
+    }
+    return mapped
+  })
+}
+
+/** Validates required columns are present and converts to MetricRecord[].
+ * Throws MissingColumnsError (not a plain MTSDataError) when a required
+ * concept can't be found, so callers can offer column mapping. */
+export function rowsToRecords(rows: RawRow[]): MetricRecord[] {
+  const columns = Object.keys(rows[0] ?? {})
+  const columnSet = new Set(columns)
+  const missing = REQUIRED_CONCEPTS.filter((c) => !columnSet.has(c))
   if (missing.length > 0) {
-    throw new MTSDataError(
-      `Missing required column(s): [${missing.sort().join(", ")}]. ` +
-        `Required columns are: [${[...REQUIRED_COLUMNS].sort().join(", ")}].`,
-    )
+    throw new MissingColumnsError(columns, missing)
   }
 
-  const hasSampleSize = columns.has("sample_size")
+  const hasSampleSize = columnSet.has("sample_size")
 
   return rows.map((row) => {
     const timestamp = new Date(String(row.timestamp))
@@ -72,6 +120,12 @@ export function parseInput(filename: string, data: string | ArrayBuffer): Metric
     }
     return record
   })
+}
+
+/** The fast path: exact column names, zero extra steps - unchanged
+ * behavior from before column mapping existed. */
+export function parseInput(filename: string, data: string | ArrayBuffer): MetricRecord[] {
+  return rowsToRecords(parseRawRows(filename, data))
 }
 
 function asText(data: string | ArrayBuffer, filename: string): string {

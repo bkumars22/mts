@@ -21,6 +21,40 @@ app = typer.Typer(
     help="MTS - Metric Trust Score. Audits AI metric data for statistical trustworthiness."
 )
 
+VALID_MAP_CONCEPTS = {"metric_name", "timestamp", "value", "sample_size"}
+
+
+def _parse_column_map(raw: str | None) -> dict[str, str] | None:
+    """Parse --map's `concept=column,concept=column` syntax into a dict."""
+    if not raw:
+        return None
+
+    mapping: dict[str, str] = {}
+    for pair in raw.split(","):
+        if "=" not in pair:
+            raise MTSDataError(
+                f"Invalid --map entry '{pair}' - expected concept=column, "
+                f"e.g. metric_name=description"
+            )
+        concept, _, source = pair.partition("=")
+        concept = concept.strip()
+        source = source.strip()
+        if concept not in VALID_MAP_CONCEPTS:
+            raise MTSDataError(
+                f"Unknown concept '{concept}' in --map - "
+                f"expected one of {sorted(VALID_MAP_CONCEPTS)}"
+            )
+        if not source:
+            raise MTSDataError(f"--map entry for '{concept}' is missing a column name")
+        mapping[concept] = source
+
+    sources = list(mapping.values())
+    duplicates = sorted({s for s in sources if sources.count(s) > 1})
+    if duplicates:
+        raise MTSDataError(f"--map assigns the same column to more than one concept: {duplicates}")
+
+    return mapping
+
 
 @app.callback()
 def main() -> None:
@@ -39,6 +73,12 @@ def analyze(
     output: Path | None = typer.Option(
         None, "--output", help="Also save a structured JSON report to this path."
     ),
+    map: str | None = typer.Option(
+        None,
+        "--map",
+        help="Column mapping for files that don't use the exact expected names, e.g. "
+        "metric_name=description,timestamp=date,value=score",
+    ),
     verbose: bool = typer.Option(False, "--verbose", help="Enable debug logging."),
 ) -> None:
     """Analyze a metrics file and print a trust score report."""
@@ -48,7 +88,8 @@ def analyze(
     )
 
     try:
-        df = load_data(input)
+        column_map = _parse_column_map(map)
+        df = load_data(input, column_map=column_map)
     except MTSDataError as exc:
         typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
