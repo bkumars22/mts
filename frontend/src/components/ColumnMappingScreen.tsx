@@ -54,10 +54,22 @@ export function ColumnMappingScreen({
       </p>
 
       <Card className="mt-6 p-6">
-        <p className="text-xs font-semibold tracking-wide text-mts-faint uppercase">
-          Columns found in your file
-        </p>
-        <p className="mt-1 font-mono text-sm text-mts-text">{columns.join(", ")}</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-mts-faint uppercase">
+              Columns found in your file
+            </p>
+            <p className="mt-1 font-mono text-sm text-mts-text">{columns.join(", ")}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-mts-faint uppercase">
+              Expected columns
+            </p>
+            <p className="mt-1 font-mono text-sm text-mts-text">
+              {FIELDS.map((f) => (f.required ? f.concept : `${f.concept} (optional)`)).join(", ")}
+            </p>
+          </div>
+        </div>
 
         <div className="mt-6 space-y-4">
           {FIELDS.map((field) => (

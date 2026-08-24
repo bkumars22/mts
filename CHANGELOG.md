@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+- Drag-and-drop + clearer mismatch errors (v0.2 Feature 3): the dropzone already had drag-and-drop with a visual drag-over state, and a single mismatched-column file already skips straight to the mapping screen rather than erroring out - so this closed the two remaining gaps. The mapping screen now lists "Expected columns" alongside "Columns found in your file" instead of only implying the expected set through field labels. The rare case of uploading a batch of files with two-or-more genuinely different (non-matching) column layouts now reports each file group's actual found columns, instead of just naming the files.
+
 ### Changed
 - "Try with sample data" (v0.2 Feature 2): the existing example-data picker was already functionally most of this feature (four scenario buttons, immediate real analysis, no upload required), so this made it match the spec's intent more directly rather than rebuilding it - a labeled divider, a "Try it with sample data" heading with supporting copy, and slightly more prominent buttons, replacing the small "Or try an example" caption.
 

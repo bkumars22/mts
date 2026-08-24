@@ -88,14 +88,25 @@ function processFiles(files: InputFile[]): ProcessResult {
 
   const needsMapping = resolved.filter((r): r is { ok: false } & NeedsMapping => !r.ok)
   if (needsMapping.length > 0) {
-    const signatures = new Set(needsMapping.map((f) => [...f.columns].sort().join(",")))
-    if (signatures.size > 1) {
+    const groups = new Map<string, { filenames: string[]; columns: string[] }>()
+    for (const f of needsMapping) {
+      const signature = [...f.columns].sort().join(",")
+      const group = groups.get(signature)
+      if (group) {
+        group.filenames.push(f.filename)
+      } else {
+        groups.set(signature, { filenames: [f.filename], columns: f.columns })
+      }
+    }
+    if (groups.size > 1) {
+      const groupLines = [...groups.values()]
+        .map((g) => `${g.filenames.join(", ")} - columns: [${g.columns.join(", ")}]`)
+        .join("; ")
       return {
         kind: "error",
         message:
-          `These files have different column layouts and can't be mapped together: ` +
-          `${needsMapping.map((f) => f.filename).join(", ")}. Upload files with matching ` +
-          `columns together, or one at a time.`,
+          `These files have different column layouts and can't be mapped together in one batch: ` +
+          `${groupLines}. Upload files with matching columns together, or one at a time.`,
       }
     }
     const first = needsMapping[0]
